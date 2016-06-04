@@ -6,74 +6,62 @@
 #include "utils_docker.h"
 #include "sh_drunnercfg.h"
 #include "globallogger.h"
+#include "globalcontext.h"
 #include "generate_validator_image.h"
 #include "drunnercompose.h"
 
 namespace command_setup
 {
 
-   int setup(const params & p)
+   int setup()
    {
-      if (p.getArgs().size() < 1)
-         logmsg(kLERROR, "Usage:\n   drunner setup ROOTPATH");
-
-      // -----------------------------------------------------------------------------
-      // determine rootpath.
-      std::string rootpath = utils::getabsolutepath(p.getArgs()[0]);
-      if (rootpath.length() == 0)
-         logmsg(kLERROR, "Couldn't determine path for " + p.getArgs()[0]);
+      const params & p(*GlobalContext::getParams().get());
+      const sh_drunnercfg & settings(*GlobalContext::getSettings().get());
 
       // -----------------------------------------------------------------------------
       // create rootpath if it doesn't exist.
-      utils::makedirectory(rootpath, p, S_755);
+      utils::makedirectory(settings.getPath_Root(), S_755);
 
       // -----------------------------------------------------------------------------
-      // now that rootpath is created we can get concrete path to it.
-      rootpath = utils::getcanonicalpath(rootpath);
-
-      // -----------------------------------------------------------------------------
-      // create the settings and write to config.sh
-      sh_drunnercfg settings(rootpath);
-      bool readOkay = settings.readSettings(); // try reading existing settings
-      if (!readOkay) 
-         if (!settings.writeSettings()) // if we fail, then write default settings
-            logmsg(kLERROR, "Couldn't write settings file!");
+      // Update settings on disk.
+      if (!settings.writeSettings())
+         logmsg(kLERROR, "Couldn't write settings file!");
 
       // -----------------------------------------------------------------------------
       // move this executable to the directory.
       //int result = rename( utils::get_exefullpath().c_str(), (rootpath+"/drunner").c_str());
-      if (!utils::copyfile(utils::get_exefullpath(), rootpath + "/drunner"))
-         logmsg(kLERROR, "Couldn't copy drunner executable from " + utils::get_exefullpath() + " to " + rootpath + ".");
+      if (!utils::copyfile(utils::get_exefullpath(), settings.getPath_Root() + "/drunner"))
+         logmsg(kLERROR, "Couldn't copy drunner executable from " + utils::get_exefullpath() + " to " + settings.getPath_Root() + ".");
 
       // -----------------------------------------------------------------------------
       // create bin directory
       std::string bindir = utils::get_usersbindir();
-      utils::makedirectory(bindir, p, S_700);
+      utils::makedirectory(bindir, S_700);
 
       // -----------------------------------------------------------------------------
       // create symlink
-      utils::makesymlink(rootpath + "/drunner", bindir + "/drunner",p);
+      utils::makesymlink(settings.getPath_Root() + "/drunner", bindir + "/drunner");
 
       // sort out docker-compose - now expected to be present.
       //InstallDockerCompose(p);
 
       // get latest root util image.
       //std::cerr << "ROOTUITILIMAGE = " << settings.getRootUtilImage() << std::endl;
-      utils_docker::pullImage(p, settings, settings.getRootUtilImage());
+      utils_docker::pullImage(settings.getRootUtilImage());
 
       // -----------------------------------------------------------------------------
       // create services, support and temp directories
-      utils::makedirectory(settings.getPath_dServices(), p, S_755);
-      utils::makedirectory(settings.getPath_Support(), p, S_755);
-      utils::makedirectory(settings.getPath_Temp(), p, S_755);
-      utils::makedirectory(settings.getPath_HostVolumes(), p, S_755);
+      utils::makedirectory(settings.getPath_dServices(), S_755);
+      utils::makedirectory(settings.getPath_Support(), S_755);
+      utils::makedirectory(settings.getPath_Temp(), S_755);
+      utils::makedirectory(settings.getPath_HostVolumes(), S_755);
 
       // create the validator script that is run inside containers
-      generate_validator_image(settings.getPath_Support(), p);
+      generate_validator_image(settings.getPath_Support());
 
       // -----------------------------------------------------------------------------
       // Finished!
-      if (readOkay)
+      if (settings.mReadOkay)
          logmsg(kLINFO, "Update of drunner to " + p.getVersion() + " completed succesfully.");
       else
          logmsg(kLINFO, "Setup of drunner " + p.getVersion() + " completed succesfully.");
@@ -81,12 +69,15 @@ namespace command_setup
       return 0;
    }
 
-   int update(const params & p, const sh_drunnercfg & s)
+   int update()
    {
+      const params & p(*GlobalContext::getParams().get());
+      const sh_drunnercfg & s(*GlobalContext::getSettings().get());
+
       logmsg(kLDEBUG, "Updating dRunner in " + s.getPath_Root());
 
       std::string url(s.getdrunnerInstallURL()), trgt(s.getPath_Root() + "/drunner-install");
-      utils::downloadexe(url, trgt, p);
+      utils::downloadexe(url, trgt);
 
       logmsg(kLINFO, "Updating...");
 

@@ -1,13 +1,14 @@
 #include <iostream>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <unistd.h>
 
 #include "showhelp.h"
 #include "utils.h"
-#include "logmsg.h"
+#include "globallogger.h"
+#include "globalcontext.h"
 
-void showhelp(const params & p, std::string cMsg) {
+void showhelp(std::string cMsg) {
+
+   const params & p(*GlobalContext::getParams());
+
    logmsg(kLINFO,p.substitute(R"EOF(
 NAME
    ${EXENAME}
@@ -18,10 +19,13 @@ VERSION
 DESCRIPTION
    Provides a standard way to manage and run docker services.
    See http://drunner.io
-)EOF"), p);
+)EOF"));
+
+
 
    if (utils::isInstalled())
-      logmsg(kLINFO,p.substitute(R"EOF(
+   {
+      logmsg(kLINFO, p.substitute(R"EOF(
 SYNOPSIS
    ${EXENAME} [OPTION] [COMMAND] [ARGS]...
 
@@ -57,9 +61,11 @@ EXIT CODE
    0   - success
    1   - error
    3   - no changes made
-)EOF"), p);
+)EOF"));
+   }
    else
-      logmsg(kLINFO,p.substitute(R"EOF(
+   {
+      logmsg(kLINFO, p.substitute(R"EOF(
 SYNOPSIS
    Install drunner with services to be stored under ROOTPATH:
    ${EXENAME} [OPTION] ROOTPATH
@@ -67,10 +73,11 @@ SYNOPSIS
 OPTIONS
    -v    verbose
    -s    silent
-)EOF"), p);
+)EOF"));
+   }
 
-   //setenv("Sniggle", "wiggle", 1);
-   //execl("/usr/bin/env", "env", 0);
-   //std::cerr << cMsg << std::endl;
-   logmsg(kLERROR, cMsg, p);
+   if (cMsg.length() > 0)
+      logmsg(kLERROR, cMsg);
+   else
+      exit(1);
 }

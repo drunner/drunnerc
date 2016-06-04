@@ -86,7 +86,9 @@
     <ClInclude Include="$(SolutionDir)\..\source\generators\generate.h" />
     <ClInclude Include="$(SolutionDir)\..\source\generators\generate_utils_sh.h" />
     <ClInclude Include="$(SolutionDir)\..\source\generators\generate_validator_image.h" />
-    <ClInclude Include="$(SolutionDir)\..\source\logmsg.h" />
+    <ClInclude Include="..\..\source\dservicelogger.h" />
+    <ClInclude Include="..\..\source\globalcontext.h" />
+    <ClInclude Include="..\..\source\globallogger.h" />
     <ClInclude Include="$(SolutionDir)\..\source\main.h" />
     <ClInclude Include="$(SolutionDir)\..\source\params.h" />
     <ClInclude Include="$(SolutionDir)\..\source\pstream.h" />
@@ -116,7 +118,9 @@
     <ClCompile Include="$(SolutionDir)\..\source\service_install.cpp" />
     <ClCompile Include="$(SolutionDir)\..\source\command_setup.cpp" />
     <ClCompile Include="$(SolutionDir)\..\source\generators\generate.cpp" />
-    <ClCompile Include="$(SolutionDir)\..\source\logmsg.cpp" />
+    <ClCompile Include="..\..\source\dservicelogger.cpp" />
+    <ClCompile Include="..\..\source\globalcontext.cpp" />
+    <ClCompile Include="..\..\source\globallogger.cpp" />
     <ClCompile Include="$(SolutionDir)\..\source\main.cpp" />
     <ClCompile Include="$(SolutionDir)\..\source\params.cpp" />
     <ClCompile Include="$(SolutionDir)\..\source\service.cpp" />

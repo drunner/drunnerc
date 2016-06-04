@@ -7,8 +7,8 @@
 
 namespace command_general
 {
-   void showservices(const params & p, const sh_drunnercfg & settings);
-   void clean(const params & p, const sh_drunnercfg & settings);
+   void showservices();
+   void clean();
 }
 
 #endif

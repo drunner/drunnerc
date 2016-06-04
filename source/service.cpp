@@ -2,30 +2,28 @@
 #include <sstream>
 
 #include "service.h"
-#include "logmsg.h"
+#include "globallogger.h"
 #include "utils.h"
 #include "servicehook.h"
 #include "sh_servicevars.h"
 #include "drunnercompose.h"
+#include "globalcontext.h"
 
-service::service(const params & prms, const sh_drunnercfg & settings, const std::string & servicename, std::string imagename /*= ""*/) :
-   servicepaths(settings,servicename),
-   mImageName( loadImageName(prms,settings,servicename,imagename) ),
-   mParams(prms),
+service::service(const std::string & servicename, std::string imagename /*= ""*/) :
+   servicepaths(servicename),
+   mImageName( loadImageName(servicename,imagename) ),
    mEnvironment(*this)
 {
 }
 
-servicepaths::servicepaths(const sh_drunnercfg & settings, const std::string & servicename) :
-   mName(servicename),
-   mSettings(settings)
+servicepaths::servicepaths(const std::string & servicename) :
+   mName(servicename)
 {
 }
 
-
-std::string service::loadImageName(const params & prms, const sh_drunnercfg & settings, const std::string & servicename, std::string imagename)
+std::string service::loadImageName(const std::string & servicename, std::string imagename)
 {
-   std::string v = servicepaths(settings, servicename).getPath();
+   std::string v = servicepaths(servicename).getPath();
    if (utils::fileexists(v))
    {
       if (imagename.length() == 0)
@@ -33,19 +31,19 @@ std::string service::loadImageName(const params & prms, const sh_drunnercfg & se
          sh_servicevars shv;
          if (!shv.readSettings( shv.getPathFromParent(v) ))
          {
-            ::logmsg(kLWARN, "Couldn't read servicevars.sh from " + v, prms);
-            ::logmsg(kLWARN, "Service old/broken. Recover with:", prms);
-            ::logmsg(kLWARN, "   drunner recover " + servicename + " IMAGENAME", prms);
-            ::logmsg(kLERROR, "Unable to determine the image name. Exiting.", prms);
+            ::logmsg(kLWARN, "Couldn't read servicevars.sh from " + v);
+            ::logmsg(kLWARN, "Service old/broken. Recover with:");
+            ::logmsg(kLWARN, "   drunner recover " + servicename + " IMAGENAME");
+            ::logmsg(kLERROR, "Unable to determine the image name. Exiting.");
          }
          imagename = shv.getImageName();
       }
       else
-         ::logmsg(kLDEBUG, "Forcing dService main image to be " + imagename,prms);
+         ::logmsg(kLDEBUG, "Forcing dService main image to be " + imagename);
    }
 
    if (imagename.length() == 0)
-      ::logmsg(kLERROR, "Couldn't determine imagename.",prms);
+      ::logmsg(kLERROR, "Couldn't determine imagename.");
 
    return imagename;
 }
@@ -53,7 +51,7 @@ std::string service::loadImageName(const params & prms, const sh_drunnercfg & se
 
 std::string servicepaths::getPath() const
 {
-   return mSettings.getPath_dServices() + "/" + mName;
+   return GlobalContext::getSettings()->getPath_dServices() + "/" + mName;
 }
 
 std::string servicepaths::getPathdRunner() const
@@ -68,7 +66,7 @@ std::string servicepaths::getPathTemp() const
 
 std::string servicepaths::getPathHostVolume() const
 {
-   return mSettings.getPath_HostVolumes() + "/" + mName;
+   return GlobalContext::getSettings()->getPath_HostVolumes() + "/" + mName;
 }
 
 std::string servicepaths::getPathHostVolume_servicerunner() const
@@ -100,11 +98,11 @@ std::string servicepaths::getName() const
 void service::ensureDirectoriesExist() const
 {
    // create service's drunner and temp directories on host.
-   utils::makedirectory(getPath(), mParams, S_755);
-   utils::makedirectory(getPathdRunner(), mParams, S_777);
-   utils::makedirectory(getPathTemp(), mParams, S_777);
-   utils::makedirectory(getPathHostVolume_environment(), mParams, S_700);
-   utils::makedirectory(getPathHostVolume_servicerunner(), mParams, S_777);
+   utils::makedirectory(getPath(), S_755);
+   utils::makedirectory(getPathdRunner(), S_777);
+   utils::makedirectory(getPathTemp(), S_777);
+   utils::makedirectory(getPathHostVolume_environment(), S_700);
+   utils::makedirectory(getPathHostVolume_servicerunner(), S_777);
 }
 
 bool service::isValid() const
@@ -112,7 +110,7 @@ bool service::isValid() const
    if (!utils::fileexists(getPath()) || !utils::fileexists(getPathdRunner()) || !utils::fileexists(getPathTemp()))
       return false;
 
-   drunnerCompose drc(*this, mParams);
+   drunnerCompose drc(*this);
    if (drc.readOkay()==kRError)
    {
       logmsg(kLDEBUG, "docker-compose.yml is broken for service "+getName());
@@ -130,19 +128,21 @@ bool service::isValid() const
 
 cResult service::servicecmd()
 {
-   if (mParams.numArgs() < 1)
+   const params & p(*GlobalContext::getParams());
+
+   if (p.numArgs() < 1)
       fatal("Programming error - number of arguments should never be 0 in service::servicecmd");
 
-   std::vector<std::string> cargs( mParams.getArgs().begin() + 1, mParams.getArgs().end() );
+   std::vector<std::string> cargs( p.getArgs().begin() + 1, p.getArgs().end() );
 
-   if (mParams.numArgs() < 2 || utils::stringisame(mName, "help"))
+   if (p.numArgs() < 2 || utils::stringisame(mName, "help"))
    {
       cargs.push_back("help");
       serviceRunnerCommand(cargs);
       return kRSuccess;
    }
 
-   std::string command = mParams.getArgs()[1];
+   std::string command = p.getArgs()[1];
    std::string reservedwords = " install backupstart backupend backup restore update enter uninstall obliterate recover ";
    if (utils::findStringIC(reservedwords, " " + command + " ")) // spaces are to ensure whole word match.
    {
@@ -152,7 +152,7 @@ cResult service::servicecmd()
       logmsg(kLERROR, "Should never get here. Enter command shouldn't return.");
    }
 
-   servicehook hook(this, "servicecmd", cargs, mParams);
+   servicehook hook(this, "servicecmd", cargs);
    hook.starthook();
 
    cResult rval( serviceRunnerCommand(cargs) );
@@ -164,17 +164,12 @@ cResult service::servicecmd()
 
 void service::update()
 { // update the service (recreate it)
-   servicehook hook(this, "update", mParams);
+   servicehook hook(this, "update");
    hook.starthook();
 
    recreate(true);
    
    hook.endhook();
-}
-
-const params & service::getParams() const
-{
-   return mParams;
 }
 
 const std::string service::getImageName() const
@@ -184,7 +179,7 @@ const std::string service::getImageName() const
 
 void service::enter()
 {
-   servicehook hook(this, "enter", mParams);
+   servicehook hook(this, "enter");
    hook.starthook();
 
    execl(getPathServiceRunner().c_str(), "servicerunner", "enter", NULL);
@@ -192,7 +187,7 @@ void service::enter()
 
 int service::status()
 {
-   servicehook hook(this, "status", mParams);
+   servicehook hook(this, "status");
    hook.starthook();
 
    if (!utils::fileexists(getPath()))
@@ -214,35 +209,36 @@ int service::status()
 
 
 
-void validateImage(const params & prms, const sh_drunnercfg & settings, std::string imagename)
+void validateImage(std::string imagename)
 {
-   if (!utils::fileexists(settings.getPath_Root())) logmsg(kLERROR, "ROOTPATH not set.",prms);
+   if (!utils::fileexists(GlobalContext::getSettings()->getPath_Root())) 
+      logmsg(kLERROR, "ROOTPATH not set.");
 
    if (utils::imageisbranch(imagename))
-      logmsg(kLDEBUG, imagename + " looks like a development branch (won't be pulled).", prms);
+      logmsg(kLDEBUG, imagename + " looks like a development branch (won't be pulled).");
    else
-      logmsg(kLDEBUG, imagename + " should be a production image.", prms);
+      logmsg(kLDEBUG, imagename + " should be a production image.");
 
    std::string op;
    int rval = utils::bashcommand(
-      "docker run --rm -v \"" + settings.getPath_Support() +
+      "docker run --rm -v \"" + GlobalContext::getSettings()->getPath_Support() +
       ":/support\" \"" + imagename + "\" /support/validator-image 2>&1", op);
 
    if (rval != 0)
    {
       if (utils::findStringIC(op, "Unable to find image"))
-         logmsg(kLERROR, "Couldn't find image " + imagename,prms);
+         logmsg(kLERROR, "Couldn't find image " + imagename);
       else
-         logmsg(kLERROR, op,prms);
+         logmsg(kLERROR, op);
    }
-   logmsg(kLINFO, "\u2714  " + imagename + " is dRunner compatible.",prms);
+   logmsg(kLINFO, "\u2714  " + imagename + " is dRunner compatible.");
 }
 
 
 cResult service::serviceRunnerCommand(const std::vector<std::string> & args) const
 {
    // set environment.
-   drunnerCompose drc(*this, mParams);
+   drunnerCompose drc(*this);
    if (drc.readOkay()==kRError)
       logmsg(kLWARN, "Couldn't set up drunnerCompose. servicerunner will not have environment set correctly.");
    else
@@ -253,7 +249,7 @@ cResult service::serviceRunnerCommand(const std::vector<std::string> & args) con
    auto newargs(args);
    newargs.insert(newargs.begin(), std::string("servicerunner"));
 
-   cResult rval(utils::dServiceCmd(getPathServiceRunner(), newargs, mParams, true));
+   cResult rval(utils::dServiceCmd(getPathServiceRunner(), newargs, true));
    return rval;
 }
 

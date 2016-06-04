@@ -30,7 +30,7 @@ public:
 class drunnerCompose {
 public:
    // reads in docker-compose.yml - if present.
-   drunnerCompose(const service & svc, const params & p);
+   drunnerCompose(const service & svc);
 
    // Set the variables in the environemnt for servicerunner.
    void setServiceRunnerEnv() const;
@@ -62,7 +62,6 @@ private:
    std::vector<cServiceInfo> mServicesInfo;
 
    const service & mService;
-   const params & mParams;
    cResult mReadOkay;
 };
 

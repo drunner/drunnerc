@@ -7,7 +7,7 @@
 
 namespace utils_docker
 {
-   void pullImage(const params & p, const sh_drunnercfg & s, const std::string & image);
+   void pullImage(const std::string & image);
 }
 
 #endif

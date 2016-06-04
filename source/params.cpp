@@ -9,9 +9,9 @@
 
 #include "params.h"
 #include "utils.h"
-#include "showhelp.h"
-#include "logmsg.h"
+#include "globallogger.h"
 #include "buildnum.h"
+#include "exceptions.h"
 
 
 std::string params::substitute( const std::string & source ) const
@@ -49,10 +49,11 @@ eCommand params::parsecmd(std::string s) const
    commandlist["unittest"] = c_unittest;
    commandlist["servicecmd"] = c_servicecmd;
    commandlist["__save-environment"] = c_saveenvironment;
+   commandlist["help"] = c_help;
 
    auto it=commandlist.find(s);
    if (it==commandlist.end())
-      showhelp(*this,"Unknown command \"" + s + "\".");
+      throw eExit("Unknown command \"" + s + "\".");
    return it->second;
 }
 
@@ -67,12 +68,6 @@ void params::setdefaults()
    mCmd = c_UNDEFINED;
 
    mDevelopmentMode = false;
-}
-
-params::params(eLogLevel ll)
-{
-   setdefaults();
-   mLogLevel=ll;
 }
 
 // Parse command line parameters.
@@ -149,34 +144,25 @@ while (1)
             break;
 
          default:
-            showhelp(*this,"Unrecognised option."); //" -" + std::string(1,c));
+            throw eExit("Unrecognised option."); //" -" + std::string(1,c));
       }
    }
 
    if (mOptions.size() == 0)
       mOptions.push_back("-n");
 
-   // drunner with no command.
    int opx=optind;
    if (utils::isInstalled())
    {
-      if (opx>=argc)
-         showhelp( *this, "Please enter a command.");
-      mCmd=parsecmd(argv[opx++]);
+      if (opx >= argc) // drunner with no command.
+         mCmd = c_help;
+      else
+         mCmd=parsecmd(argv[opx++]);
    } else {
       // NOT installed.
       if (opx>=argc)
-         showhelp( *this, R"EOF(Not yet installed.
-Please provide command line argument:
- 1) the ROOTPATH to install to, or
- 2) unittest to run unittests
-)EOF");
-      if (utils::stringisame(argv[opx],"unittest"))
-      {
-         ++opx;
-         mCmd=c_unittest;
-      } else
-         mCmd=c_setup;
+         throw eExit("Not yet installed.\nPlease provide the ROOTPATH to install to.");
+      mCmd=c_setup;
    }
 
    // store the arguments to the command.

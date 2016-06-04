@@ -24,8 +24,10 @@
 #include "pstream.h"
 #include "utils.h"
 #include "exceptions.h"
-#include "globallogger.h"
 #include "dservicelogger.h"
+#include "globallogger.h"
+#include "globalcontext.h"
+#include "enums.h"
 
 namespace utils
 {
@@ -104,7 +106,7 @@ namespace utils
       return WEXITSTATUS(status);
    }
 
-   int dServiceCmd(std::string command, const std::vector<std::string> & args, const params & p, bool isServiceCmd)
+   int dServiceCmd(std::string command, const std::vector<std::string> & args, bool isServiceCmd)
    { // non-blocking streaming
       { // sanity check parameters.
          if (args.size() < 1)
@@ -121,8 +123,8 @@ namespace utils
          logmsg(kLDEBUG, "dServiceCmd: " + cmd);
       }
 
-      dServiceLogger logcout(false, p, isServiceCmd);
-      dServiceLogger logcerr(true, p, isServiceCmd);
+      dServiceLogger logcout(false, isServiceCmd);
+      dServiceLogger logcerr(true, isServiceCmd);
 
       const redi::pstreams::pmode mode = redi::pstreams::pstdout | redi::pstreams::pstderr;
       redi::ipstream child(command, args, mode);
@@ -181,7 +183,7 @@ namespace utils
       }
       catch(...)
       {
-         return "";
+         return path;
       }
       return rval.string();
    }
@@ -250,7 +252,7 @@ namespace utils
       std::string op;
       int rval = bashcommand("echo $USER",op);
       if (rval!=0)
-         logmsg(kLERROR,"Couldn't get current user.", kLERROR);
+         logmsg(kLERROR,"Couldn't get current user.");
       return op;
    }
 
@@ -270,7 +272,7 @@ namespace utils
          buff[len] = '\0';
          return std::string(buff);
       }
-      logmsg(kLERROR,"Couldn't get path to drunner executable!", kLERROR);
+      logmsg(kLERROR,"Couldn't get path to drunner executable!");
       return "";
    }
 
@@ -291,7 +293,7 @@ namespace utils
       std::string op;
       int rval = bashcommand("echo $HOME",op);
       if (rval!=0)
-         logmsg(kLERROR,"Couldn't get current user's home directory.", kLERROR);
+         logmsg(kLERROR,"Couldn't get current user's home directory.");
       return op+"/bin";
    }
 
@@ -356,54 +358,54 @@ namespace utils
    }
 
 
-   void makedirectory(const std::string & d, const params & p, mode_t mode)
+   void makedirectory(const std::string & d, mode_t mode)
    {
       eResult rslt = utils::mkdirp(d);
       if (rslt==kRError)
-         logmsg(kLERROR,"Couldn't create "+d,p);
+         logmsg(kLERROR,"Couldn't create "+d);
       if (rslt==kRSuccess)
-         logmsg(kLDEBUG,"Created "+d,p);
+         logmsg(kLDEBUG,"Created "+d);
       if (rslt==kRNoChange)
-         logmsg(kLDEBUG,d+" exists. Unchanged.",p);
+         logmsg(kLDEBUG,d+" exists. Unchanged.");
 
       if (chmod(d.c_str(), mode)!=0)
-         logmsg(kLERROR, "Unable to change permissions on "+d,p);
+         logmsg(kLERROR, "Unable to change permissions on "+d);
    }
 
-   void makesymlink(const std::string & file, const std::string & link, const params & p)
+   void makesymlink(const std::string & file, const std::string & link)
    {
 	if (!utils::fileexists(file))
-		logmsg(kLERROR, "Can't link to " + file + " because it doesn't exist", p);
+		logmsg(kLERROR, "Can't link to " + file + " because it doesn't exist");
 	if (utils::fileexists(link))
 		if (remove(link.c_str()) != 0)
-			logmsg(kLERROR, "Couldn't remove stale symlink at " + link, p);
+			logmsg(kLERROR, "Couldn't remove stale symlink at " + link);
 	std::string cmd = "ln -s " + file + " " + link;
 	std::string op;
 	if (utils::bashcommand(cmd, op) != 0)
-		logmsg(kLERROR, "Failed to create symbolic link for drunner. "+op, p);
+		logmsg(kLERROR, "Failed to create symbolic link for drunner. "+op);
    }
 
-   void deltree(const std::string & s,const params & p)
+   void deltree(const std::string & s)
    {
       std::string op;
       if (fileexists(s))
       {
          if (bashcommand("rm -rf "+s+" 2>&1", op) != 0)
-            logmsg(kLERROR, "Unable to remove existing directory at "+s+" - "+op,p);
-         logmsg(kLDEBUG,"Recursively deleted "+s,p);
+            logmsg(kLERROR, "Unable to remove existing directory at "+s+" - "+op);
+         logmsg(kLDEBUG,"Recursively deleted "+s);
       }
       else
-         logmsg(kLDEBUG,"Directory "+s+" does not exist (no need to delete).",p);
+         logmsg(kLDEBUG,"Directory "+s+" does not exist (no need to delete).");
    }
 
-   void delfile(const std::string & fullpath,const params & p)
+   void delfile(const std::string & fullpath)
    {
       if (utils::fileexists(fullpath))
          {
          std::string op;
          if (bashcommand("rm -f "+fullpath+" 2>&1", op) != 0)
-            logmsg(kLERROR, "Unable to remove "+fullpath + " - "+op,p);
-         logmsg(kLDEBUG,"Deleted "+fullpath,p);
+            logmsg(kLERROR, "Unable to remove "+fullpath + " - "+op);
+         logmsg(kLDEBUG,"Deleted "+fullpath);
          }
    }
 
@@ -456,17 +458,17 @@ namespace utils
       return (r == 0);
    }
 
-   void downloadexe(std::string url, std::string filepath, const params &p)
+   void downloadexe(std::string url, std::string filepath)
    {
       std::string op;
 
       // only download if server has newer version.      
       int rval = utils::bashcommand("curl " + url + " -z " + filepath + " -o " + filepath + " --silent --location 2>&1 && chmod 0755 " + filepath, op);
       if (rval != 0)
-         logmsg(kLERROR, "Unable to download " + url, p);
+         logmsg(kLERROR, "Unable to download " + url);
       if (!utils::fileexists(filepath))
-         logmsg(kLERROR, "Failed to download " + url + ", curl return value is success but expected file "+ filepath +" does not exist.", p);
-      logmsg(kLDEBUG, "Successfully downloaded " + filepath, p);
+         logmsg(kLERROR, "Failed to download " + url + ", curl return value is success but expected file "+ filepath +" does not exist.");
+      logmsg(kLDEBUG, "Successfully downloaded " + filepath);
    }
 
    std::string alphanumericfilter(std::string s, bool whitespace)
@@ -480,13 +482,13 @@ namespace utils
    }
 
 
-   tempfolder::tempfolder(std::string d, const params & p) : mPath(d), mP(p) 
+   tempfolder::tempfolder(std::string d) : mPath(d)
    {   // http://stackoverflow.com/a/10232761
       eResult rslt = utils::mkdirp(d);
       if (rslt == kRError)
          die("Couldn't create " + d);
       if (rslt == kRSuccess)
-         logmsg(kLDEBUG, "Created " + d, p);
+         logmsg(kLDEBUG, "Created " + d);
       if (rslt == kRNoChange)
          die(d+ " already exists. Can't use as temp folder. Aborting.");
 
@@ -507,7 +509,7 @@ namespace utils
    void tempfolder::die(std::string msg)
    {
       tidy();
-      logmsg(kLERROR, msg, mP); // throws. dtor won't be called since die is only called from ctor.
+      logmsg(kLERROR, msg); // throws. dtor won't be called since die is only called from ctor.
    }
    void tempfolder::tidy()
    {
@@ -515,25 +517,25 @@ namespace utils
       if (bashcommand("rm -rf " + mPath + " 2>&1", op) != 0)
          std::cerr << "ERROR: failed to remove " + mPath << std::endl; // don't throw on dtor.
       else
-         logmsg(kLDEBUG, "Recursively deleted " + mPath,mP);
+         logmsg(kLDEBUG, "Recursively deleted " + mPath);
    }
 
 
 
-   dockerrun::dockerrun(const std::string & cmd, const std::vector<std::string> & args, std::string dockername, const params & p)
-      : mDockerName(dockername), mP(p)
+   dockerrun::dockerrun(const std::string & cmd, const std::vector<std::string> & args, std::string dockername)
+      : mDockerName(dockername)
    {
-      int rval = utils::dServiceCmd(cmd, args,p);
+      int rval = utils::dServiceCmd(cmd, args);
       if (rval != 0)
       {
          std::ostringstream oss;
          for (auto entry : args)
             oss << entry << " ";
-         logmsg(kLDEBUG, oss.str(), mP);
+         logmsg(kLDEBUG, oss.str());
          tidy(); // throwing from ctor does not invoke dtor!
          std::ostringstream oss2;
          oss2 << "Docker command failed. Return code=" << rval;
-         logmsg(kLERROR, oss2.str(), mP);
+         logmsg(kLERROR, oss2.str());
       }
    }
    dockerrun::~dockerrun()
@@ -548,7 +550,7 @@ namespace utils
       if (rval != 0)
          std::cerr << "failed to remove " + mDockerName << std::endl; // don't throw on dtor.
       else
-         logmsg(kLDEBUG, "Deleted docker container " + mDockerName, mP);
+         logmsg(kLDEBUG, "Deleted docker container " + mDockerName);
    }
 
 

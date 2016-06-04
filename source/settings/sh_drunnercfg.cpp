@@ -1,5 +1,6 @@
 #include "sh_drunnercfg.h"
 #include "utils.h"
+#include "globallogger.h"
 
 // can't put this in header because circular
 // dependency then with utils::getTime.
@@ -11,11 +12,15 @@ sh_drunnercfg::sh_drunnercfg(const std::string & rootpath) :
    setString("DRUNNERINSTALLURL", R"EOF(https://drunner.s3.amazonaws.com/drunner-install)EOF");
    setString("DRUNNERINSTALLTIME", utils::getTime());
    setBool("PULLIMAGES", true);
+
+   mReadOkay = false;
+   readSettings();
 }
+
 bool sh_drunnercfg::readSettings()
 {
-   bool readokay = settingsbash::readSettings(getPath_drunnercfg_sh());
-   if (!readokay)
+   mReadOkay = settingsbash::readSettings(getPath_drunnercfg_sh());
+   if (!mReadOkay)
       return false;
 
    // migrate old settings.
@@ -23,13 +28,12 @@ bool sh_drunnercfg::readSettings()
    {
       setString("ROOTUTILIMAGE", "drunner/rootutils");
       if (!writeSettings())
-         ; // couldn't migrate settings.
+         fatal("Couldn't migrate old dRunner settings."); // couldn't migrate settings.
    }
-
-   return readokay;
+   return mReadOkay;
 }
 
-bool sh_drunnercfg::writeSettings()
+bool sh_drunnercfg::writeSettings() const
 {
    return settingsbash::writeSettings(getPath_drunnercfg_sh());
 }

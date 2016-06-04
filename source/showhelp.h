@@ -5,6 +5,6 @@
 #include <string>
 #include "params.h"
 
-void showhelp(const params & p, std::string cMsg="");
+void showhelp(std::string cMsg="");
 
 #endif

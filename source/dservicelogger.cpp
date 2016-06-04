@@ -5,15 +5,16 @@
 
 #include "dservicelogger.h"
 #include "globallogger.h"
+#include "globalcontext.h"
 
 
-dServiceLogger::dServiceLogger(bool cerr, const params & p, bool isServiceCmd) :
+dServiceLogger::dServiceLogger(bool cerr, bool isServiceCmd) :
    mCErr(cerr), mInitialised(false)
 {
    if (isServiceCmd)
-      mOutputMode = p.getServiceOutput_servicecmd();
+      mOutputMode = GlobalContext::getParams()->getServiceOutput_servicecmd();
    else
-      mOutputMode = p.getServiceOutput_hooks();
+      mOutputMode = GlobalContext::getParams()->getServiceOutput_hooks();
 }
 
 void dServiceLogger::log(const char * const buf, int n)
@@ -53,7 +54,7 @@ void dServiceLogger::processbuffer(std::string buffer)
       if (!mInitialised)
       {
          mInitialised = true;
-         nonrawoutput(GlobalLogger::getheader(mCErr ? kLWARN : kLINFO));
+         nonrawoutput(getheader(mCErr ? kLWARN : kLINFO));
       }
 
       size_t pos = buffer.find('\n');

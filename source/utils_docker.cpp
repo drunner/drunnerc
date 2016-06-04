@@ -1,44 +1,45 @@
 
-#include "logmsg.h"
 #include "utils.h"
 #include "utils_docker.h"
+#include "globalcontext.h"
+#include "globallogger.h"
 
 namespace utils_docker
 {
 
-   void pullImage(const params & p, const sh_drunnercfg & s, const std::string & image)
+   void pullImage(const std::string & image)
    {
-      if (p.isDevelopmentMode())
+      if (GlobalContext::getParams()->isDevelopmentMode())
       {
-         logmsg(kLDEBUG, "In developer mode - not pulling " + image, p);
+         logmsg(kLDEBUG, "In developer mode - not pulling " + image);
          return;
       }
 
-      if (!s.getPullImages())
+      if (!GlobalContext::getSettings()->getPullImages())
       {
-         logmsg(kLDEBUG, "Pulling images disabled in global options.", p);
+         logmsg(kLDEBUG, "Pulling images disabled in global options.");
          return;
       }
 
       if (utils::imageisbranch(image))
       {
-         logmsg(kLDEBUG, image+" is not on the master branch, so assuming dev environment and not pulling.", p);
+         logmsg(kLDEBUG, image+" is not on the master branch, so assuming dev environment and not pulling.");
          return;
       }
 
-      logmsg(kLINFO, "Pulling Docker image " + image + ".\n This may take some time...", p);
+      logmsg(kLINFO, "Pulling Docker image " + image + ".\n This may take some time...");
       eResult rslt = utils::pullimage(image);
 
       switch (rslt) 
       {
       case kRError:
-         logmsg(kLERROR, "Couldn't pull " + image, p);
+         logmsg(kLERROR, "Couldn't pull " + image);
          break;
       case kRNoChange:
-         logmsg(kLDEBUG, "No change to Docker image (it's already up to date).", p);
+         logmsg(kLDEBUG, "No change to Docker image (it's already up to date).");
          break;
       default:
-         logmsg(kLINFO, "Successfully pulled " + image, p);
+         logmsg(kLINFO, "Successfully pulled " + image);
       }
    }
 

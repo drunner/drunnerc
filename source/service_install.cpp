@@ -3,7 +3,8 @@
 #include "command_dev.h"
 #include "utils.h"
 #include "utils_docker.h"
-#include "logmsg.h"
+#include "globallogger.h"
+#include "globalcontext.h"
 #include "exceptions.h"
 #include "settingsbash.h"
 #include "command_setup.h"
@@ -25,11 +26,6 @@ std::string service::getUserID(std::string imagename) const
 
 	logmsg(kLDEBUG, imagename+" is running under userID " + op + ".");
 	return op;
-}
-
-void service::logmsg(eLogLevel level, std::string s) const
-{
-   ::logmsg(level, s, mParams.getLogLevel());
 }
 
 void service::createLaunchScript()
@@ -98,7 +94,7 @@ void service::createVolumes(const drunnerCompose * const drc)
          args.push_back(userid + ":root");
          args.push_back("/tempmount");
 
-         utils::dockerrun dr("/usr/bin/docker", args, dname, mParams);
+         utils::dockerrun dr("/usr/bin/docker", args, dname);
 
          logmsg(kLDEBUG, "Set permissions to allow user " + userid + " access to volume " + entry.mDockerVolumeName);
       }
@@ -108,13 +104,13 @@ void service::createVolumes(const drunnerCompose * const drc)
 void service::recreate(bool updating)
 {
    if (updating)
-      utils_docker::pullImage(mParams, mSettings, getImageName());
+      utils_docker::pullImage(getImageName());
    
    try
    {
       // nuke any existing dService files on host (but preserve volume containers!).
       if (utils::fileexists(getPath()))
-         utils::deltree(getPath(), mParams);
+         utils::deltree(getPath());
 
       // notice for hostVolumes.
       if (utils::fileexists(getPathHostVolume()))
@@ -131,7 +127,7 @@ void service::recreate(bool updating)
          logmsg(kLERROR, "Couldn't copy the service files. You will need to reinstall the service.");
 
       // write out variables.sh for the dService.
-      drunnerCompose drc(*this, mParams);
+      drunnerCompose drc(*this);
       if (drc.readOkay()==kRError)
          fatal("Unexpected error - docker-compose.yml is broken.");
       
@@ -144,10 +140,10 @@ void service::recreate(bool updating)
       // make sure we have the latest of all exra containers.
       for (const auto & entry : drc.getServicesInfo())
          if (entry.mImageName != getImageName()) // don't pull main image again.
-            utils_docker::pullImage(mParams, mSettings, entry.mImageName);
+            utils_docker::pullImage(entry.mImageName);
 
       // create the utils.sh file for the dService.
-      generate_utils_sh(getPathdRunner(), mParams);
+      generate_utils_sh(getPathdRunner());
 
       // create launch script
       createLaunchScript();
@@ -159,7 +155,7 @@ void service::recreate(bool updating)
    catch (const eExit & e) {
       // tidy up.
       if (utils::fileexists(getPath()))
-         utils::deltree(getPath(), mParams);
+         utils::deltree(getPath());
 
       throw (e);
    }
@@ -172,14 +168,14 @@ void service::install()
 		logmsg(kLERROR, "Service already exists. Try:   drunner update " + getName());
 
 	// make sure we have the latest version of the service.
-   utils_docker::pullImage(mParams, mSettings, getImageName());
+   utils_docker::pullImage(getImageName());
 
 	logmsg(kLDEBUG, "Attempting to validate " + getImageName());
-   validateImage(mParams,mSettings,getImageName());
+   validateImage(getImageName());
 
    recreate(false);
 
-   servicehook hook(this, "install", mParams);
+   servicehook hook(this, "install");
    hook.endhook();
 
    logmsg(kLINFO, "Installation complete - try running " + getName()+ " now!");
@@ -190,10 +186,10 @@ eResult service::uninstall()
    if (!utils::fileexists(getPath()))
       logmsg(kLERROR, "Can't uninstall " + getName() + " - it does not exist.");
 
-   servicehook hook(this, "uninstall", mParams);
+   servicehook hook(this, "uninstall");
    hook.starthook();
 
-   utils::deltree(getPath(), mParams);
+   utils::deltree(getPath());
 
    if (utils::fileexists(getPath()))
       logmsg(kLERROR, "Uninstall failed - couldn't delete " + getPath());
@@ -207,12 +203,12 @@ eResult service::obliterate()
    if (!utils::fileexists(getPath()))
       logmsg(kLERROR, "Can't obliterate " + getName() + " - it does not exist.");
 
-   servicehook hook(this, "obliterate", mParams);
+   servicehook hook(this, "obliterate");
    hook.starthook();
 
    logmsg(kLDEBUG, "Obliterating all the docker volumes - data will be gone forever.");
    {// [start] deleting docker volumes.
-      drunnerCompose drc(*this, mParams);
+      drunnerCompose drc(*this);
       if (drc.readOkay()!=kRError)
       {
          tVecStr docvolnames;
@@ -231,11 +227,11 @@ eResult service::obliterate()
 
    // delete the host volumes
    logmsg(kLINFO, "Obliterating the hostVolumes (environment and servicerunner)");
-   utils::deltree(getPathHostVolume(), mParams);
+   utils::deltree(getPathHostVolume());
 
    // delete the service tree.
    logmsg(kLINFO, "Obliterating all of the dService files");
-   utils::deltree(getPath(), mParams);
+   utils::deltree(getPath());
 
    logmsg(kLINFO, "Obliterated " + getName());
    return kRSuccess;

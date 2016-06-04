@@ -4,14 +4,13 @@
 
 void generate(
    const std::string & fullpath,
-   const params & p,
    const mode_t mode,
    const std::string & content
 )
 {
    // for now we force the generation. In future should check
    // whether any changes have been made.
-   utils::delfile(fullpath,p);
+   utils::delfile(fullpath);
 
    std::string op;
    std::ofstream ofs;

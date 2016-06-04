@@ -9,7 +9,6 @@
 class params {
 public:
    params(int argc, char **argv);
-   params(eLogLevel ll);
    std::string substitute( const std::string & source ) const;
 
    const std::string & getVersion() const { return mVersion; }
@@ -22,10 +21,7 @@ public:
    const std::vector<std::string> & getArgs() const { return mArgs; }
    int numArgs() const { return mArgs.size(); }
    const std::string & getArg(int n) const;
-   
-   // implicit conversion to allow easy logging.
-   operator eLogLevel() const { return mLogLevel; }
-
+  
    const std::vector<std::string> & getOptions() const { return mOptions; }
    bool isDevelopmentMode() const { return mDevelopmentMode; }
 

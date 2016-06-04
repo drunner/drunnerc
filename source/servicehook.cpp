@@ -1,19 +1,19 @@
 #include "enums.h"
 #include "service.h"
 #include "servicehook.h"
-#include "logmsg.h"
+#include "globallogger.h"
 #include "utils.h"
 #include "drunnercompose.h"
 #include "cresult.h"
 
-servicehook::servicehook(const service * const svc, std::string actionname, const std::vector<std::string> & hookparams, const params & p) :
-   mService(svc), mActionName(actionname), mHookParams(hookparams), mParams(p)
+servicehook::servicehook(const service * const svc, std::string actionname, const std::vector<std::string> & hookparams) :
+   mService(svc), mActionName(actionname), mHookParams(hookparams)
 {
    setHookCmds();
 }
 
-servicehook::servicehook(const service * const svc, std::string actionname, const params & p) :
-   mService(svc), mActionName(actionname), mParams(p)
+servicehook::servicehook(const service * const svc, std::string actionname) :
+   mService(svc), mActionName(actionname)
 {
    setHookCmds();
 }
@@ -23,7 +23,7 @@ cResult servicehook::starthook()
    if (mStartCmd.length() > 0)
       return runHook(mStartCmd);
 
-   logmsg(kLDEBUG, "dService doesn't require hook for " + mActionName + " start",mParams);
+   logmsg(kLDEBUG, "dService doesn't require hook for " + mActionName + " start");
    return kRNoChange;
 }
 
@@ -32,7 +32,7 @@ cResult servicehook::endhook()
    if (mEndCmd.length()>0)
       return runHook(mEndCmd);
 
-   logmsg(kLDEBUG, "dService doesn't require hook for " + mActionName + " end", mParams);
+   logmsg(kLDEBUG, "dService doesn't require hook for " + mActionName + " end");
    return kRNoChange;
 }
 
@@ -40,7 +40,7 @@ cResult servicehook::runHook(std::string se)
 {
    if (!utils::fileexists(mServiceRunner))
    {
-      logmsg(kLWARN, "Couldn't run hook " + se + " because dService's servicerunner is not installed.", mParams);
+      logmsg(kLWARN, "Couldn't run hook " + se + " because dService's servicerunner is not installed.");
       return kRError;
    }
 
@@ -56,9 +56,9 @@ cResult servicehook::runHook(std::string se)
       rval=kRNoChange; // not implemented is perfectly fine for hooks.
 
    if (rval.isError())
-      logmsg(kLWARN, "dService hook " + se + " returned error.", mParams);
+      logmsg(kLWARN, "dService hook " + se + " returned error.");
    else
-      logmsg(kLDEBUG, "dService hook for " + se + " complete", mParams);
+      logmsg(kLDEBUG, "dService hook for " + se + " complete");
 
    return rval;
 }

@@ -10,7 +10,7 @@
 
 #include "settingsbash.h"
 #include "utils.h"
-#include "logmsg.h"
+#include "globallogger.h"
 
 std::string dequote(const std::string & s, char c)
 {

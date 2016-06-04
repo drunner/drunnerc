@@ -25,7 +25,7 @@ public:
 class dServiceLogger
 {
 public:
-   dServiceLogger(bool cerr, const params & p, bool isServiceCmd);
+   dServiceLogger(bool cerr, bool isServiceCmd);
    void log(const char * const buf, int n);
 
 private:

@@ -7,15 +7,15 @@
 
 class drunnerCompose;
 
-cResult service_restore(const params & prms, const sh_drunnercfg & settings, const std::string & servicename, const std::string & backupfile);
-void validateImage(const params & prms, const sh_drunnercfg & settings, std::string imagename);
+cResult service_restore(const std::string & servicename, const std::string & backupfile);
+void validateImage(std::string imagename);
 
 
 
 class servicepaths
 {
 public:
-   servicepaths(const sh_drunnercfg & settings, const std::string & servicename);
+   servicepaths(const std::string & servicename);
 
    std::string getPath() const;
    std::string getPathdRunner() const;
@@ -29,7 +29,6 @@ public:
 
 protected:
    const std::string mName;
-   const sh_drunnercfg & mSettings;
 };
 
 class cServiceEnvironment : protected settingsbash
@@ -53,7 +52,7 @@ class service : public servicepaths
 {
 public:
    // will load imagename from variables.sh unless overridden with parameter.
-   service(const params & prms, const sh_drunnercfg & settings, const std::string & servicename, std::string imagename = "" );
+   service(const std::string & servicename, std::string imagename = "" );
 
    bool isValid() const;
 
@@ -81,12 +80,10 @@ private:
    void createVolumes(const drunnerCompose * const drc);
    void createLaunchScript();
    std::string getUserID(std::string imagename) const;
-   void logmsg(eLogLevel level, std::string s) const;
 
-   static std::string loadImageName(const params & prms, const sh_drunnercfg & settings, const std::string & servicename, std::string imagename);
+   static std::string loadImageName(const std::string & servicename, std::string imagename);
 
    const std::string mImageName;
-   const params & mParams;
    cServiceEnvironment mEnvironment;
 };
 

@@ -26,8 +26,7 @@ enum eLogLevel
    kLDEBUG=0,
    kLINFO=1,
    kLWARN=2,
-   kLERROR=3,
-   kLFATAL=4
+   kLERROR=3
 };
 
 enum edServiceOutput
@@ -57,6 +56,7 @@ enum eCommand {
    c_unittest,
    c_servicecmd,
    c_saveenvironment,
+   c_help,
 };
 
 

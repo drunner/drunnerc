@@ -3,31 +3,19 @@
 
 #include <exception>
 #include <string.h>
+#include <iostream>
+
+#include "termcolor.h"
 
 class eExit: public std::exception
 {
    public:
-      eExit(const char * msg, int exitCode=1) : mMsg(msg), mExitCode(exitCode)
-      {
-      }
-
-      virtual const char* what() const throw()
-      {
-         return mMsg;
-      }
-
-      int exitCode() const throw() // we guarentee not to throw an exception.
-      {
-         return mExitCode;
-      }
-
-      bool hasMsg() const
-      {
-         return (strlen(mMsg)>0);
-      }
+      eExit(int exitCode = 1);
+      eExit(const char * msg, int exitCode = 1);
+      eExit(std::string msg, int exitCode = 1);
+      int exitCode() const throw(); // we guarentee not to throw an exception.
 
    private:
-      const char * mMsg;
       int mExitCode;
 };
 

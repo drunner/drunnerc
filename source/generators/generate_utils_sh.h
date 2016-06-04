@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "generate.h"
 
-void generate_utils_sh(const std::string & supportpath, const params & p)
+void generate_utils_sh(const std::string & supportpath)
 {
    std::string vdata = R"EOF(#!/bin/bash
 # --- some useful utility functions
@@ -133,7 +133,7 @@ function save_environment {
 
 )EOF";
 
-   generate(supportpath+"/utils.sh",p,S_ALLREAD,vdata);
+   generate(supportpath+"/utils.sh",S_ALLREAD,vdata);
 }
 
 #endif

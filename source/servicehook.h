@@ -13,8 +13,8 @@ class service;
 class servicehook
 {
 public:
-   servicehook(const service * const svc, std::string actionname, const std::vector<std::string> & hookparams, const params & p);
-   servicehook(const service * const svc, std::string actionname, const params & p);
+   servicehook(const service * const svc, std::string actionname, const std::vector<std::string> & hookparams);
+   servicehook(const service * const svc, std::string actionname);
    cResult starthook();
    cResult endhook();
 private:
@@ -24,7 +24,6 @@ private:
    const service * const mService;
    std::string mActionName;
    std::vector<std::string> mHookParams;
-   const params & mParams;
 
    std::string mServiceRunner;
 

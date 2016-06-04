@@ -16,9 +16,8 @@
 // ---------------------------------------------------------------------------------------------------
 //
 
-drunnerCompose::drunnerCompose(const service & svc, const params & p) : 
+drunnerCompose::drunnerCompose(const service & svc) : 
    mService(svc), 
-   mParams(p), 
    mReadOkay(kRError)
 {
    load_docker_compose_yml();

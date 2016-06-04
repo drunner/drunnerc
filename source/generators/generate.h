@@ -9,7 +9,6 @@
 
 void generate(
    const std::string & fullpath,
-   const params & p,
    const mode_t mode,
    const std::string & content
 );

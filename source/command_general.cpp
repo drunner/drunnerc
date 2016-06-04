@@ -2,6 +2,7 @@
 
 #include "command_general.h"
 #include "globallogger.h"
+#include "globalcontext.h"
 #include "enums.h"
 #include "utils.h"
 #include "utils_docker.h"
@@ -11,9 +12,9 @@
 namespace command_general
 {
 
-   void showservices(const sh_drunnercfg & settings)
+   void showservices()
    {
-      std::string parent = settings.getPath_dServices();
+      std::string parent = GlobalContext::getSettings()->getPath_dServices();
       std::vector<std::string> services;
       if (!utils::getFolders(parent,services))
          logmsg(kLERROR,"Couldn't get subfolders of "+parent);
@@ -27,10 +28,10 @@ namespace command_general
    }
 
 
-   void clean(const params & p, const sh_drunnercfg & settings)
+   void clean()
    {
       std::string op;
-      utils_docker::pullImage(p, settings, "spotify/docker-gc");
+      utils_docker::pullImage("spotify/docker-gc");
 
       logmsg(kLINFO,"Cleaning.");
       if (utils::bashcommand("docker run --rm -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc",op) != 0)

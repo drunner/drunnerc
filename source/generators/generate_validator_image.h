@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "generate.h"
 
-void generate_validator_image(const std::string & supportpath, const params & p)
+void generate_validator_image(const std::string & supportpath)
 {
 // should really just validate with C++. :/
 
@@ -29,7 +29,7 @@ exit 0
 }
 )EOF";
 
-   generate(supportpath+"/validator-image",p,S_755,vdata);
+   generate(supportpath+"/validator-image",S_755,vdata);
 }
 
 

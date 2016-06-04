@@ -6,8 +6,7 @@
 
 namespace command_dev
 {
-   void build(const params & p, const sh_drunnercfg & settings,const std::string & thedir="");
-
+   void build(const std::string & thedir=""); // if thedir is not specified it uses the present working directory.
 }
 
 #endif

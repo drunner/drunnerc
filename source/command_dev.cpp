@@ -1,5 +1,6 @@
 #include "command_dev.h"
 #include "globallogger.h"
+#include "globalcontext.h"
 #include "settingsbash.h"
 #include "utils.h"
 #include "sh_ddev.h"
@@ -19,7 +20,7 @@ using namespace utils;
       return (r==0);
    }
 
-   void build(const params & p, const sh_drunnercfg & settings,const std::string & thedir)
+   void build(const std::string & thedir)
    {
       std::string pwd=(thedir.length()>0 ? thedir : getPWD());
       std::string dfile=pwd+"/Dockerfile";

@@ -7,34 +7,15 @@
 #include "enums.h"
 #include "params.h"
 #include "globallogger.h"
+#include "globalcontext.h"
 #include "exceptions.h"
 #include "utils.h"
 #include "termcolor.h"
 
-using namespace std;
-
-std::shared_ptr<GlobalLogger> GlobalLogger::instance()
-{
-   if (!s_instance)
-      fatal("Attempt to get instance of logger when not initialised!");
-   return s_instance;
-}
-void GlobalLogger::init(const params & p)
-{
-   s_instance = std::make_shared<GlobalLogger>(p.getLogLevel,true);
-}
-void GlobalLogger::init()
-{
-   s_instance = std::make_shared<GlobalLogger>(kLFATAL, false);
-}
-GlobalLogger::GlobalLogger(eLogLevel logcutoff, bool loggingenabled) : mLogCutoff(logcutoff), mLoggingEnabled(loggingenabled)
-{
-}
-
-std::string GlobalLogger::timestamp()
+std::string timestamp()
 {
         //Notice the use of a stringstream, yet another useful stream medium!
-        ostringstream stream;
+        std::ostringstream stream;
         time_t rawtime;
         tm * timeinfo;
 
@@ -48,7 +29,7 @@ std::string GlobalLogger::timestamp()
         return stream.str();
 }
 
-std::string GlobalLogger::levelname(eLogLevel level)
+std::string levelname(eLogLevel level)
 {
    switch (level)
    {
@@ -60,9 +41,9 @@ std::string GlobalLogger::levelname(eLogLevel level)
    }
 }
 
-void GlobalLogger::logverbatim(eLogLevel level, std::string s)
+void logverbatim(eLogLevel level, std::string s)
 {
-   if (level < mLogCutoff)
+   if (level < GlobalContext::getParams()->getLogLevel())
       return;
 
    // we use stdout for normal messages, stderr for warn and error.
@@ -71,16 +52,15 @@ void GlobalLogger::logverbatim(eLogLevel level, std::string s)
       case kLDEBUG: std::cout << termcolor::cyan << s << termcolor::reset; break;
       case kLINFO:  std::cout << termcolor::blue << s << termcolor::reset; break;
       case kLWARN:  std::cerr << termcolor::yellow <<  s << termcolor::reset; break;
-      case kLERROR: std::cerr << termcolor::red << s << termcolor::reset; break;
-      case kLFATAL: 
+      case kLERROR: 
          std::cerr << termcolor::red << s << termcolor::reset; 
-         throw eExit(s.c_str());
+         throw eExit();
          break;
       default:      std::cerr << termcolor::green <<  s << termcolor::reset; break;
    }
 }
 
-std::string GlobalLogger::getheader(eLogLevel level)
+std::string getheader(eLogLevel level)
 {
    std::ostringstream ost;
    ost << "|" << levelname(level) << "|" << timestamp() << "| ";
@@ -88,9 +68,9 @@ std::string GlobalLogger::getheader(eLogLevel level)
 }
 
 
-void GlobalLogger::logmsg(eLogLevel level, std::string s)
+void logmsg(eLogLevel level, std::string s)
 {   
-   if (level < mLogCutoff)
+   if (level < GlobalContext::getParams()->getLogLevel())
       return;
 
    std::string info = getheader(level);
@@ -98,6 +78,12 @@ void GlobalLogger::logmsg(eLogLevel level, std::string s)
    boost::erase_all(s2, "\r");
 
    logverbatim(level,info+s2+"\n");
+}
+
+
+void fatal(std::string s)
+{
+   logmsg(kLERROR, s);
 }
 
 // ----------------------------------------------------------------------------------------------------
