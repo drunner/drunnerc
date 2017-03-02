@@ -79,3 +79,7 @@ bld/
 # conan
 conanbuildinfo.props
 conaninfo.txt
+
+# Mac
+.DS_Store
+

@@ -104,7 +104,7 @@ cResult persistvariables::loadvariables()
    // check all items are (1) listed in config, and (2) valid.
    for (auto x : storedvars.getAll())
       setVal(x.first, x.second);
-      
+
    return kRSuccess;
 }
 
@@ -197,7 +197,7 @@ cResult persistvariables::_showconfiginfo() const
    return kRSuccess;
 }
 
-cResult persistvariables::handleConfigureCommand(CommandLine cl) 
+cResult persistvariables::handleConfigureCommand(CommandLine cl)
 {
    if (cl.args.size() == 0)
       return _showconfiginfo();
@@ -266,7 +266,7 @@ std::unique_ptr<envDef> persistvariables::getDef(std::string key) const
    for (const auto & x : mEnvDefs)
       if (Poco::icompare(x.name, key) == 0)
          return std::unique_ptr<envDef>(new envDef(x));
-   return false;
+   return nullptr;
 }
 
 bool persistvariables::exists() const
